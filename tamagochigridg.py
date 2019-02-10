@@ -110,7 +110,7 @@ def regist():
         bs.grid(row=6,column=0)
 
 def save():
-        if name =="default": # доделать name для регистрации, для зарег. юзера метод апдейт в закрепе в хроме
+        if name =="default": 
             a=Toplevel()
             a.geometry('+210+210')
             ls=Label(a,text="Зарегестрируйтесь или введите существующее имя пользователя")
@@ -184,13 +184,13 @@ def about():
     a.geometry('550x150')
     #a['bg'] = 'grey'
     Label(a, text="""Это написано на Python версии 3.6.4 в качестве учебного проекта.
-Использован модуль time, shelve, random, функции и классы, встроенный GUI TKinter.
+Использован модуль time, shelve, random, функции и классы, встроенный GUI TKinter, 
+загрузка и сохранение в БД, регистрация в БД, login.
 Telegram: @ru_python_beginners
 Автор: @kawaii772
 Необходимо добавить:
-Привязку к SQL
 Инвентарь
-Логин/пароль""").pack()
+Пароли для пользователей""").pack()
 
 lfeed=Label(text='Добро пожаловать! \nВаш питомец - креветка')
 lfeed.grid(row=1,column=1,columnspan=4,rowspan=3)
