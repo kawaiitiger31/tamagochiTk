@@ -2,6 +2,10 @@ from tkinter import *
 import shelve
 import random
 import time
+import psycopg2
+from configsql import *
+
+
 class Watereat:
     def __init__(self,name,energy,power):
         self.name = name
@@ -30,17 +34,17 @@ class Watersnakes(Waterlife):
     def giveEnergy(self, num):
         self.energy= self.energy+ num/2
 
-krevetka = Waterlife('Креветочка','musor',300,'ocean last floor',4)
+krevetka = Waterlife('Krevetka','musor',300,'ocean last floor',4)
 akula = Waterlife('Akulius SMF','krevetka',450)
 murena= Watersnakes('MurMurena','akula',800,'ocean last floor')
 
 
 
 
-
+name ="default"
 
 root = Tk()
-root.geometry('480x100+100+100')
+root.geometry('480x150+100+100')
 root.title("WaterZoo Tamagochi ver. 0.01")
 #f_top = Frame() #для текста фрейм
 #f_bot = Frame() #для кнопок
@@ -49,23 +53,132 @@ root.title("WaterZoo Tamagochi ver. 0.01")
 r_var= BooleanVar() #бул знач для радиокнопки
 r_var.set(0) # ставим по умолчанию false
 
-
+def login():
+    a=Toplevel()
+    a.geometry('+210+210')
+    es=Entry(a)
+    es.grid(row=5,column=0)
+    s=Label(a,text="Введите существующее имя пользователя")
+    s.grid(row=4, column=0)
+    def login1():
+        global name
+        name= es.get()
+        conn = psycopg2.connect(dbname='test', user=sqlus, 
+                                password=sqlpass, host=sqlhost,port='5432')
+        cursor = conn.cursor()
+        sql= "SELECT * FROM tmg WHERE numusr=%s"
+        val=(name,)
+        cursor.execute(sql,val)
+        row = cursor.fetchall()
+        if row==[]:
+            lfeed['text']="Пользователь не найден"
+        else:
+            lfeed['text']="Вы вошли под пользователем " + name
+        a.destroy()
+        
+    bs=Button(a,text="Ok", command=login1)
+    bs.grid(row=6,column=0)
 def exitz():
     root.destroy()
 
+def regist():
+        a=Toplevel()
+        a.geometry('+210+210')
+        es=Entry(a)
+        es.grid(row=5,column=0)
+        ls=Label(a,text="Введите имя пользователя для регистрации")
+        ls.grid(row=4, column=0)
+        def save1():
+            global name
+            name= es.get()
+            try:
+                conn = psycopg2.connect(dbname='test', user=sqlus, 
+                            password=sqlpass, host=sqlhost,port='5432')
+                cursor = conn.cursor()
+                sql= "INSERT INTO tmg (numusr,nameusr,power,razmer,energy) VALUES (%s,%s,%s,%s,%s)"
+                val = (name,krevetka.name,krevetka.power,krevetka.razmer,krevetka.energy)
+                cursor.execute(sql,val)
+                conn.commit()
+                cursor.close()
+                conn.close()
+                lfeed['text']="Вы зарегестрированы под ником: " +name
+                a.destroy()
+            except psycopg2.IntegrityError:
+                ls=Label(a,text="Недопустимое имя! Попробуйте придумать новое имя пользователя")
+                ls.grid(row=0,column=0)
+        bs=Button(a,text="Ok", command=save1)
+        bs.grid(row=6,column=0)
+
 def save():
-    db = shelve.open('waterzoo',flag="n")
-    db['krevetka'] = krevetka
-    db['akula'] = akula
-    db['murena'] = murena
-    db.close()
-    lfeed['text']="Статус сохранен!"
+        if name =="default": # доделать name для регистрации, для зарег. юзера метод апдейт в закрепе в хроме
+            a=Toplevel()
+            a.geometry('+210+210')
+            ls=Label(a,text="Зарегестрируйтесь или введите существующее имя пользователя")
+            ls.grid(row=4, column=0)
+            def save1():
+                a.destroy()
+            bs=Button(a,text="Ok", command=save1)
+            bs.grid(row=6,column=0)
+        else:
+            
+            conn = psycopg2.connect(dbname='test', user=sqlus, 
+                                    password=sqlpass, host=sqlhost,port='5432')
+            cursor = conn.cursor()
+            sql= " UPDATE tmg SET nameusr=%s, power=%s, razmer=%s, energy=%s WHERE numusr=%s"
+            val= (krevetka.name,krevetka.power,krevetka.razmer,krevetka.energy,name)
+            cursor.execute(sql,val)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            lfeed['text']="Статус сохранен. Пользователь: " +name
+            
 
 def load():
-    global krevetka
-    db = shelve.open('waterzoo')
-    krevetka= db['krevetka']
-    lfeed['text']="Статус загружен!"
+    if name =="default":
+        a=Toplevel()
+        a.geometry('+210+210')
+        es=Entry(a)
+        es.grid(row=5,column=0)
+        def load1():
+            try:
+                global krevetka
+                conn = psycopg2.connect(dbname='test', user=sqlus, 
+                            password=sqlpass, host=sqlhost,port='5432')
+                cursor = conn.cursor()
+                name= es.get()
+                sql1= "SELECT nameusr,power,razmer,energy FROM tmg WHERE numusr=(%s)"
+                val1= (name,)
+                cursor.execute(sql1,(name,))
+                row = cursor.fetchall()
+                krevetka.name = row[0][0]
+                krevetka.power = row[0][1]
+                krevetka.razmer = row[0][2]
+                krevetka.energy = row[0][3]
+                a.destroy()
+                lfeed['text']="Статус загружен!"
+            except IndexError:
+                lfeed['text']="Ошибка, пользователя не существует"
+        bs=Button(a,text="Ok", command=load1)
+        bs.grid(row=6,column=0)
+    else:
+        try:
+            global krevetka
+            conn = psycopg2.connect(dbname='test', user=sqlus, 
+                                    password=sqlpass, host=sqlhost,port='5432')
+            cursor = conn.cursor()
+            sql1= "SELECT nameusr,power,razmer,energy FROM tmg WHERE numusr=(%s)"
+            val1= (name,)
+            cursor.execute(sql1,(name,))
+            row = cursor.fetchall()
+            krevetka.name = row[0][0]
+            krevetka.power = row[0][1]
+            krevetka.razmer = row[0][2]
+            krevetka.energy = row[0][3]
+            lfeed['text']="Статус загружен для пользователя " + name
+        except:
+            lfeed['text']="Ошибка, пользователя не существует"
+
+            
 def about():
     a= Toplevel()
     a.geometry('550x150')
@@ -98,7 +211,7 @@ def sleep():
     b81.grid(row=1,column=0)
 
 def status():
-    lfeed['text']="Имя " + krevetka.name +". Ваша энергия: " +str(krevetka.energy) \
+    lfeed['text']= "Log in as "+ name+ " Имя " + krevetka.name +". Ваша энергия: " +str(krevetka.energy) \
                    +"\n"+ "Ваша сила: " + str(krevetka.power)+ " Ваш размер: " + str(krevetka.razmer)+ " см."
 def play():
     eventlist=["Купаем зверя",
@@ -219,7 +332,8 @@ b4 = Button(text="Сохранить",command=save).grid(row=5,column=4,sticky=W
 b5 = Button(text="Загрузить",command=load).grid(row=4,column=4,sticky=W+S)
 b6 = Button(text="Выйти",command=exitz).grid(row=5,column=5,sticky=E+S)
 b7 = Button(text="О программе",command=about).grid(row=4,column=5,sticky=E+S)
-l1 = Label(text="").grid(row=2,column=0,sticky=W+S)
-
+l1 = Label(text="").grid(row=6,column=0,sticky=W+S)
+b8 = Button(text="Login", command=login).grid(row=6,column=6,sticky=E+S)
+b9 = Button(text="Reg", command=regist).grid(row=7,column=6,sticky=E+S)
 
 root.mainloop()
